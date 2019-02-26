@@ -1,16 +1,18 @@
-var fs = require('fs')
-var map = require('async-each')
-var join = require('path').join
-var el = require('./lib/hyperxml')
+var fs = require('fs');
+var map = require('async-each');
+var fielpath = require('path');
+var join = fielpath.join;
+var win32 = filepath.win32;
+var el = require('./lib/hyperxml');
 
-module.exports = generateXml
+module.exports = generateXml;
 
 function generateXml(options, cb) {
   getComponents('.', options, function(err, components, ids) {
     if (err) return cb(err)
 
-    var optionsWithIds = Object.create(options)
-    optionsWithIds.componentIds = ids
+    var optionsWithIds = Object.create(options);
+    optionsWithIds.componentIds = ids;
 
     cb(null, installerFor(components, optionsWithIds).toXml({pretty: true}))
   })
@@ -116,6 +118,8 @@ function installerFor (components, options) {
         ])
       ]),
 
+      options.updatePath ?  makeUpdatePath(options) : "",
+
       el('Feature', {
         Id: 'App',
         Level: '1'
@@ -125,6 +129,62 @@ function installerFor (components, options) {
 
     ])
   ])
+}
+
+function makeUpdatePath(options) {
+
+  var boundPath = ["[INSTALLDIR]"];
+
+  var sourcePath = join(options.source);
+
+  var builtPath = "";
+
+  if (options && options.pathToAdd && typeof options.pathToAdd === "string") {
+
+    var t = join(sourcePath, options.pathToAdd);
+
+    var s = fs.statSync(t);
+
+    if (s.isDirectory()) {
+
+      t = t.replace(sourcePath, "");
+
+      var spl = t.substr(1).split(filepath.sep);
+
+      if (spl.length > 0) {
+
+        spl.forEach(function (item) {
+
+          if (item && item !== ".") {
+
+            boundPath.push(item);
+
+          }
+
+        });
+
+      }
+
+    }
+
+  }
+
+  builtPath = boundPath.join(win32.sep);
+
+  if (options.debug === true) {
+    console.log("Using Update Path:", builtPath);
+  }
+
+  return el('Environment', {
+    Id: 'PATH',
+    Name: 'PATH',
+    Value: builtPath,
+    Permanent:"yes",
+    Part:"last",
+    Action:"set",
+    System:"yes"
+  })
+
 }
 
 function getComponents (path, options, cb) {

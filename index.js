@@ -15,6 +15,9 @@ module.exports = function(options, cb) {
   //  iconPath
   //  executable
   //  localInstall
+  // updatePath
+  // pathToAdd
+  // debug
 
   writeXml(options, function (err, path) {
     var args = [path, '-o', options.output]
